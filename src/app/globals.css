@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
   --background: #ffffff;
@@ -12,6 +12,22 @@
   --font-mono: var(--font-geist-mono);
 }
 
+@font-face {
+  font-family: 'CoFoSansMono';
+  src: url('/fonts/CoFoSansMono-Regular-Trial.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Pragmatica';
+  src: url('/fonts/pragmatica_book.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -22,5 +38,56 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+.headline-xl-text {
+  font-family: 'Pragmatica', sans-serif;
+  font-size: var(--typography-headline-xl-text, 64px);
+  letter-spacing: -3.2px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 90%;
+}
+
+.body-mono-xl {
+  font-family: 'CoFoSansMono', monospace;
+  font-size: var(--typography-body-xl-text, 24px);
+  letter-spacing: -1.2px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 120%;
+}
+
+.headline-2xl-text,
+.headline-xl-text,
+.body-mono-xl,
+.body-mono-md {
+  color: var(--brand-black);
+  text-align: center;
+}
+
+@media (max-width: 1024px) {
+  :root {
+    --typography-headline-2xl-text: 64px;
+    --typography-headline-xl-text: 52px;
+    --typography-headline-lg-text: 64px;
+    --typography-headline-md-text: 64px;
+    --typography-headline-sm-text: 64px;
+    --typography-headline-xs-text: 64px;
+    --typography-body-2xl-text: 24px;
+    --typography-body-xl-text: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --typography-headline-2xl-text: 52px;
+    --typography-headline-xl-text: 40px;
+    --typography-headline-lg-text: 52px;
+    --typography-headline-md-text: 52px;
+    --typography-headline-sm-text: 52px;
+    --typography-headline-xs-text: 52px;
+    --typography-body-2xl-text: 24px;
+    --typography-body-xl-text: 20px;
+  }
 }

@@ -4,6 +4,7 @@ import Link from 'next/link';
 const pages = [
   { title: 'h3map', path: '/h3map' },
   { title: 'ascii', path: '/ascii' },
+  { title: 'gif-ascii', path: '/gifascii' },
 ];
 
 export default function HomePage() {

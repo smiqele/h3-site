@@ -1,20 +1,21 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as effects from './effects';
 
 export type EffectKey = keyof typeof effects;
+type TriggerMode = 'hover' | 'always' | 'click';
 
 interface AsciiAnimationProps {
-  effect?: EffectKey; // эффект по умолчанию
-  width?: number; // ширина canvas
-  height?: number; // высота canvas
-  block?: number; // размер блока
-  speed?: number; // скорость анимации
-  back?: string; // фон
-  style?: React.CSSProperties; // доп. стили для canvas
-  className?: string; // класс для canvas
-  active?: boolean; // запуск анимации
+  effect?: EffectKey;
+  width?: number;
+  height?: number;
+  block?: number;
+  speed?: number;
+  back?: string;
+  className?: string;
+  active?: boolean;
+  trigger?: TriggerMode;
 }
 
 export default function AsciiAnimation({
@@ -24,18 +25,23 @@ export default function AsciiAnimation({
   block = 20,
   speed = 0.5,
   back = '#1B1B1B',
-  style,
-  className,
   active = true,
+  trigger = 'hover',
+  className = '',
 }: AsciiAnimationProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animationRef = useRef<number>();
+  const frameRef = useRef<number>(0);
 
+  // 👇 при hover/click — изначально false, при always — активен
+  const [isRunning, setIsRunning] = useState(
+    trigger === 'always' ? active : false
+  );
+
+  // 🎬 Основной цикл
   useEffect(() => {
-    if (!active) return; // если неактивно — не запускаем анимацию
-
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -43,26 +49,62 @@ export default function AsciiAnimation({
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'center';
 
-    let frame = 0;
-    let animationId: number;
+    const effectFunc = effects[effect];
+    if (!effectFunc) return;
 
-    function draw() {
-      // очищаем фон
+    const draw = () => {
+      if (!isRunning) return; // 🔥 не продолжаем если остановлено
+
       ctx.fillStyle = back;
       ctx.fillRect(0, 0, width, height);
+      effectFunc(ctx, frameRef.current, { width, height, block, back, speed });
 
-      // вызываем эффект с кастомными параметрами
-      const effectFunc = effects[effect];
-      if (effectFunc) effectFunc(ctx, frame, { width, height, block, back, speed });
+      frameRef.current += speed;
+      animationRef.current = requestAnimationFrame(draw);
+    };
 
-      frame += speed;
-      animationId = requestAnimationFrame(draw);
+    if (isRunning) {
+      animationRef.current = requestAnimationFrame(draw);
     }
 
-    draw();
+    return () => {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    };
+  }, [effect, width, height, block, speed, back, isRunning]);
 
-    return () => cancelAnimationFrame(animationId);
-  }, [effect, width, height, block, speed, back, active]); // следим за active
+  // 🖱 Управление hover / click
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const handleEnter = () => {
+      if (trigger === 'hover') {
+        setIsRunning(true);
+      }
+    };
+
+    const handleLeave = () => {
+      if (trigger === 'hover') {
+        setIsRunning(false);
+      }
+    };
+
+    const handleClick = () => {
+      if (trigger === 'click') {
+        setIsRunning((prev) => !prev);
+      }
+    };
+
+    canvas.addEventListener('mouseenter', handleEnter);
+    canvas.addEventListener('mouseleave', handleLeave);
+    canvas.addEventListener('click', handleClick);
+
+    return () => {
+      canvas.removeEventListener('mouseenter', handleEnter);
+      canvas.removeEventListener('mouseleave', handleLeave);
+      canvas.removeEventListener('click', handleClick);
+    };
+  }, [trigger]);
 
   return (
     <canvas
@@ -72,7 +114,7 @@ export default function AsciiAnimation({
       className={className}
       style={{
         display: 'block',
-        ...style,
+        cursor: trigger === 'click' ? 'pointer' : 'default',
       }}
     />
   );

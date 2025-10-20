@@ -5,6 +5,7 @@ const pages = [
   { title: 'h3map', path: '/h3map' },
   { title: 'ascii', path: '/ascii' },
   { title: 'gif-ascii', path: '/gifascii' },
+  { title: 'service', path: '/service' },
 ];
 
 export default function HomePage() {

@@ -58,12 +58,31 @@ body {
   line-height: 120%;
 }
 
+.body-xl {
+  font-size: var(--typography-body-xl-text, 24px);
+  letter-spacing: -0.48px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 120%;
+}
+
 .headline-2xl-text,
 .headline-xl-text,
 .body-mono-xl,
 .body-mono-md {
   color: var(--brand-black);
   text-align: center;
+}
+
+:root {
+  --typography-headline-2xl-text: 96px;
+  --typography-headline-xl-text: 64px;
+  --typography-headline-lg-text: 64px;
+  --typography-headline-md-text: 64px;
+  --typography-headline-sm-text: 64px;
+  --typography-headline-xs-text: 64px;
+  --typography-body-2xl-text: 32px;
+  --typography-body-xl-text: 24px;
 }
 
 @media (max-width: 1024px) {

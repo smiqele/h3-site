@@ -1,19 +1,38 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { config } from './config';
+import { useEffect, useRef } from 'react';
 import * as effects from './effects';
 
-// создаем тип всех эффектов
-type EffectKey = keyof typeof effects;
+export type EffectKey = keyof typeof effects;
 
-export default function AsciiAnimation() {
+interface AsciiAnimationProps {
+  effect?: EffectKey; // эффект по умолчанию
+  width?: number; // ширина canvas
+  height?: number; // высота canvas
+  block?: number; // размер блока
+  speed?: number; // скорость анимации
+  back?: string; // фон
+  style?: React.CSSProperties; // доп. стили для canvas
+  className?: string; // класс для canvas
+  active?: boolean; // запуск анимации
+}
+
+export default function AsciiAnimation({
+  effect = 'loadEffect',
+  width = 400,
+  height = 480,
+  block = 20,
+  speed = 0.5,
+  back = '#1B1B1B',
+  style,
+  className,
+  active = true,
+}: AsciiAnimationProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const effectKeys = Object.keys(effects) as EffectKey[];
-  const [effect, setEffect] = useState<EffectKey>(effectKeys[0]); // первый эффект по умолчанию
 
   useEffect(() => {
-    const { width, height, block } = config;
+    if (!active) return; // если неактивно — не запускаем анимацию
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -28,56 +47,33 @@ export default function AsciiAnimation() {
     let animationId: number;
 
     function draw() {
-      ctx.fillStyle = config.back;
+      // очищаем фон
+      ctx.fillStyle = back;
       ctx.fillRect(0, 0, width, height);
 
-      // 🔹 вызываем выбранный эффект
+      // вызываем эффект с кастомными параметрами
       const effectFunc = effects[effect];
-      if (effectFunc) effectFunc(ctx, frame);
+      if (effectFunc) effectFunc(ctx, frame, { width, height, block, back, speed });
 
-      frame += config.speed;
+      frame += speed;
       animationId = requestAnimationFrame(draw);
     }
 
     draw();
 
     return () => cancelAnimationFrame(animationId);
-  }, [effect]);
+  }, [effect, width, height, block, speed, back, active]); // следим за active
 
   return (
-    <div style={{ textAlign: 'center' }}>
-      <div style={{ marginBottom: 12 }}>
-        <label style={{ color: '#ccc', marginRight: 8 }}>Effect:</label>
-        <select
-          value={effect}
-          onChange={(e) => setEffect(e.target.value as EffectKey)}
-          style={{
-            background: '#222',
-            color: '#fff',
-            border: '1px solid #555',
-            padding: '6px 10px',
-            borderRadius: 4,
-          }}
-        >
-          {effectKeys.map((key) => (
-            <option key={key} value={key}>
-              {key}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <canvas
-        ref={canvasRef}
-        width={config.width}
-        height={config.height}
-        style={{
-          display: 'block',
-          margin: '0 auto',
-          background: config.back,
-          fontFamily: 'monospace',
-        }}
-      />
-    </div>
+    <canvas
+      ref={canvasRef}
+      width={width}
+      height={height}
+      className={className}
+      style={{
+        display: 'block',
+        ...style,
+      }}
+    />
   );
 }

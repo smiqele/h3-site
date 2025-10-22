@@ -1,5 +1,30 @@
+// lib/gif/draw.ts
 import type { Layer, FrameObject } from '../types';
 import { hexToRgb, colorDistance } from '../utils';
+import { svgBlocks } from '../ascii';
+
+// Кэш для SVG → Image
+const svgCache: Record<string, HTMLImageElement> = {};
+
+function getSvgImage(symbol: string, fg: string, bg: string): HTMLImageElement | null {
+  const key = `${symbol}_${fg}_${bg}`;
+  if (svgCache[key]) return svgCache[key];
+
+  const svgStr = svgBlocks[symbol]?.(fg, bg);
+  if (!svgStr) return null;
+
+  const img = new Image();
+  const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(svgBlob);
+  img.src = url;
+
+  img.onload = () => {
+    URL.revokeObjectURL(url);
+  };
+
+  svgCache[key] = img;
+  return img;
+}
 
 export function drawFrame(
   ctx: CanvasRenderingContext2D,
@@ -8,16 +33,12 @@ export function drawFrame(
     outW: number;
     outH: number;
     blockSize: number;
-    scale: number;
     canvasBg: string;
     layers: Layer[];
   }
 ) {
   const { width: w, height: h, imageData } = frame;
-  const { outW, outH, blockSize, scale, canvasBg, layers } = options;
-
-  const sx = outW / w;
-  const sy = outH / h;
+  const { outW, outH, blockSize, canvasBg, layers } = options;
 
   ctx.fillStyle = canvasBg;
   ctx.fillRect(0, 0, outW, outH);
@@ -27,22 +48,30 @@ export function drawFrame(
     rgb: hexToRgb(l.target) as [number, number, number],
   }));
 
+  // ---------------------- GIF слой ----------------------
   const originalLayer = layersRGB.find((l) => l.id === -1 && l.visible);
   if (originalLayer) {
+    const scaleH = outH / h;
+    const newW = w * scaleH;
+    const newH = h * scaleH;
+    const offsetX = (outW - newW) / 2;
+    const offsetY = 0;
+
     const tmpCanvas = document.createElement('canvas');
     tmpCanvas.width = w;
     tmpCanvas.height = h;
     const tmpCtx = tmpCanvas.getContext('2d');
     if (tmpCtx) tmpCtx.putImageData(frame.imageData, 0, 0);
-    ctx.drawImage(tmpCanvas, 0, 0, outW, outH);
+
+    ctx.drawImage(tmpCanvas, 0, 0, w, h, offsetX, offsetY, newW, newH);
   }
 
+  // ---------------------- ASCII SVG блоки ----------------------
   const cols = Math.ceil(w / blockSize);
   const rows = Math.ceil(h / blockSize);
-
-  ctx.textBaseline = 'middle';
-  ctx.textAlign = 'center';
-  ctx.font = `${Math.max(6, blockSize * scale)}px monospace`;
+  const scaleH = outH / h;
+  const asciiOffsetX = (outW - w * scaleH) / 2;
+  const asciiOffsetY = 0;
 
   for (let by = 0; by < rows; by++) {
     for (let bx = 0; bx < cols; bx++) {
@@ -66,22 +95,15 @@ export function drawFrame(
         }
       }
 
-      if (chosen) {
-        const cx = (bx * blockSize + blockSize / 2) * sx;
-        const cy = (by * blockSize + blockSize / 2) * sy;
+      if (chosen && chosen.symbol && svgBlocks[chosen.symbol]) {
+        const cx = bx * blockSize * scaleH + (blockSize * scaleH) / 2 + asciiOffsetX;
+        const cy = by * blockSize * scaleH + (blockSize * scaleH) / 2 + asciiOffsetY;
+        const size = blockSize * scaleH;
 
-        if ((chosen as any).bgEnabled ?? true) {
-          ctx.fillStyle = chosen.bg;
-          ctx.fillRect(
-            cx - (blockSize * sx) / 2,
-            cy - (blockSize * sy) / 2,
-            blockSize * sx,
-            blockSize * sy
-          );
+        const img = getSvgImage(chosen.symbol, chosen.fg, chosen.bg);
+        if (img) {
+          ctx.drawImage(img, cx - size / 2, cy - size / 2, size, size);
         }
-
-        ctx.fillStyle = chosen.fg;
-        ctx.fillText(chosen.symbol, cx, cy);
       }
     }
   }

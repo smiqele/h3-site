@@ -1,6 +1,7 @@
 'use client';
 import React, { useRef, useEffect } from 'react';
-import { saveGif, playGif } from './lib/gif';
+import { playGif } from './lib/gif/play';
+import { saveGif } from './lib/gif/export';
 import type { Layer, FrameObject } from './lib/types';
 
 type Props = {
@@ -23,47 +24,59 @@ export function GifPreview({
   canvasH,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const playerRef = useRef<ReturnType<typeof playGif> | null>(null);
 
+  // Перезапуск анимации только при изменении кадров или размеров холста
   useEffect(() => {
-    console.log('▶️ useEffect start', { frames, canvasW, canvasH });
-
-    if (!frames || !canvasRef.current) {
-      console.warn('⚠️ Нет данных для рендера');
-      return;
-    }
-
+    if (!frames || !canvasRef.current) return;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d', { alpha: false });
-    if (!ctx) {
-      console.warn('⚠️ Не удалось получить контекст Canvas');
-      return;
-    }
+    if (!ctx) return;
 
     canvas.width = canvasW;
     canvas.height = canvasH;
 
-    const stop = playGif(
-      frames,
-      ctx,
-      {
-        outW: canvasW,
-        outH: canvasH,
-        blockSize,
-        canvasBg,
-        layers,
-      },
-      speed
-    );
+    playerRef.current?.stop();
 
-    return () => {
-      stop();
-      console.log('🛑 useEffect cleanup, animation stopped');
-    };
-  }, [frames, layers, blockSize, canvasBg, speed, canvasW, canvasH]);
+    playerRef.current = playGif(frames, ctx, {
+      outW: canvasW,
+      outH: canvasH,
+      blockSize,
+      canvasBg,
+      layers,
+      speed,
+    });
+
+    return () => playerRef.current?.stop();
+  }, [frames, canvasW, canvasH]);
+
+  // live-update для blockSize, layers, canvasBg и speed
+  useEffect(() => {
+    playerRef.current?.updateOptions({ blockSize, canvasBg, layers, speed });
+  }, [blockSize, canvasBg, layers, speed]);
+
+  const handleSave = () => {
+    if (!frames || frames.length === 0) return;
+
+    saveGif(frames, layers, {
+      blockSize,
+      canvasBg,
+      gifDims: { w: canvasW, h: canvasH },
+      speed,
+    })
+      .then(() => console.log('✅ GIF сохранён'))
+      .catch(console.error);
+  };
 
   return (
-    <div className="relative h-full flex items-center justify-center overflow-hidden">
+    <div className="relative h-full flex flex-col items-center justify-center overflow-hidden">
       <canvas ref={canvasRef} className="max-w-full" />
+      <button
+        onClick={handleSave}
+        className="mt-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+      >
+        Save GIF
+      </button>
     </div>
   );
 }

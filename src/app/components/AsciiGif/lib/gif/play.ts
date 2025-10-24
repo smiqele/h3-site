@@ -1,36 +1,26 @@
-// lib/gif/play.ts
 import type { Layer, FrameObject } from '../../lib/types';
 import { drawFrame } from './draw';
 import { calcDelay } from './speed';
 
+export interface PlayOptions {
+  outW: number;
+  outH: number;
+  blockSize: number;
+  canvasBg: string;
+  layers: Layer[];
+  speed?: number;
+}
+
 /**
  * Воспроизводит GIF по кадрам на Canvas.
- * Скорость 1–10, где 5 = оригинальная ~60 мс (16–17 fps).
- * Scale больше не используется.
+ * Возвращает объект с методами stop и updateOptions.
  */
 export function playGif(
   frames: FrameObject[],
   ctx: CanvasRenderingContext2D,
-  options: {
-    outW: number;
-    outH: number;
-    blockSize: number;
-    canvasBg: string;
-    layers: Layer[];
-  },
-  speed = 5
+  options: PlayOptions
 ) {
-  console.groupCollapsed('🎬 playGif старт');
-  console.log('frames:', frames?.length);
-  console.log('canvas:', ctx.canvas.width, ctx.canvas.height);
-  console.log('options:', options);
-  console.log('speed:', speed);
-  console.groupEnd();
-
-  if (!frames || frames.length === 0) {
-    console.warn('⚠️ playGif: frames пуст или отсутствует');
-    return () => {};
-  }
+  if (!frames || frames.length === 0) return { stop: () => {}, updateOptions: () => {} };
 
   let i = 0;
   let stopped = false;
@@ -38,31 +28,28 @@ export function playGif(
   let lastTime = performance.now();
   let acc = 0;
 
+  const optionsRef = { current: options };
+
+  const updateOptions = (newOptions: Partial<PlayOptions>) => {
+    optionsRef.current = { ...optionsRef.current, ...newOptions };
+  };
+
   function loop(now: number) {
     if (stopped) return;
 
     const frame = frames[i];
     if (!frame) {
-      console.warn(`⚠️ frame[${i}] отсутствует`);
       stopped = true;
       return;
     }
 
-    const delay = calcDelay(60, speed);
+    const delay = calcDelay(60, optionsRef.current.speed ?? 5);
     const dt = now - lastTime;
     lastTime = now;
     acc += dt;
 
     if (acc >= delay) {
-      try {
-        //console.log(`🖼️ Рисуем кадр ${i + 1}/${frames.length}, delay=${delay.toFixed(1)}ms`);
-        drawFrame(ctx, frame, options);
-      } catch (err) {
-        console.error('❌ Ошибка при drawFrame:', err);
-        stopped = true;
-        return;
-      }
-
+      drawFrame(ctx, frame, optionsRef.current);
       i = (i + 1) % frames.length;
       acc = 0;
     }
@@ -70,19 +57,14 @@ export function playGif(
     rafId = requestAnimationFrame(loop);
   }
 
-  try {
-    console.log('✅ Первый кадр рендерится сразу');
-    drawFrame(ctx, frames[0], options);
-  } catch (err) {
-    console.error('❌ Ошибка при первом drawFrame:', err);
-    return () => {};
-  }
-
+  drawFrame(ctx, frames[0], optionsRef.current);
   rafId = requestAnimationFrame(loop);
 
-  return () => {
-    console.log('🛑 playGif остановлен');
-    stopped = true;
-    if (rafId) cancelAnimationFrame(rafId);
+  return {
+    stop: () => {
+      stopped = true;
+      if (rafId) cancelAnimationFrame(rafId);
+    },
+    updateOptions,
   };
 }

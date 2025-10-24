@@ -32,8 +32,9 @@ export function GifControls({
         <label className="text-sm w-24">Block size</label>
         <input
           type="range"
-          min={2}
-          max={16}
+          min={4}
+          max={40}
+          step={4}
           value={blockSize}
           onChange={(e) => setBlockSize(Number(e.target.value))}
         />

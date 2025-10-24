@@ -61,9 +61,12 @@ export default function ServicePage() {
         <div className="flex flex-col gap-10 p-6">
           <h2 className="headline-xl-text text-center">почему h3llo.cloud?</h2>
           <h3 className="body-mono-xl text-pretty text-center">
-            Облако должно быть простым, но не примитивным.
-            <br />
-            Почувствуй драйв простых решений
+            Виртуальные машины, сети, базы данных и управляемые сервисы для бизнеса любого масштаба.
+            Прозрачные цены, SLA и поддержка инженеров 24/7. Без лишнего.
+          </h3>
+          <h3 className="body-mono-xl2 text-pretty text-center max-w-[680px]">
+            Виртуальные машины, сети, базы данных и управляемые сервисы для бизнеса любого масштаба.
+            Прозрачные цены, SLA и поддержка инженеров 24/7. Без лишнего.
           </h3>
         </div>
 

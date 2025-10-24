@@ -1,9 +1,8 @@
-// LayersPanel.tsx
 'use client';
 import React from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import type { Layer } from './lib/types/layer';
-import { svgBlocks } from './lib/ascii';
+import { svgPaths, SvgPreview } from './lib/ascii'; // <-- теперь svgPaths содержит d
 
 type Props = {
   layers: Layer[];
@@ -14,11 +13,13 @@ type Props = {
 export function LayersPanel({ layers, updateLayer, gifUrl }: Props) {
   return (
     <aside className="flex flex-col justify-between h-full overflow-hidden">
-      <div className="">
+      <div>
         {layers.slice(1).map((l) => {
-          const SelectedSvg = svgBlocks[l.symbol] || svgBlocks['null'];
+          const symbolKey = svgPaths[l.symbol] ? l.symbol : 'null';
+          const d = svgPaths[symbolKey];
           return (
             <div key={l.id} className="flex flex-col border-b border-gray-200 p-4">
+              {/* Верхняя панель */}
               <div className="flex items-center gap-2 mb-2">
                 <div className="font-bold text-sm">#{l.id + 1}</div>
                 <button
@@ -29,58 +30,61 @@ export function LayersPanel({ layers, updateLayer, gifUrl }: Props) {
                 </button>
               </div>
 
-              {/* Выбор SVG блока */}
+              {/* Настройки символа */}
               <div className="flex items-center gap-2 mb-4">
                 <label className="block text-sm pr-2 w-16">Symbol</label>
+
+                {/* Выбор SVG блока */}
                 <select
-                  value={l.symbol}
+                  value={symbolKey}
                   onChange={(e) => updateLayer(l.id, { symbol: e.target.value })}
                   className="border border-gray-400 rounded px-1 py-1 text-sm"
                 >
-                  {Object.keys(svgBlocks).map((key) => (
+                  {Object.keys(svgPaths).map((key) => (
                     <option key={key} value={key}>
                       {key}
                     </option>
                   ))}
                 </select>
 
-                {/* Превью выбранного SVG */}
-                <div className="w-8 h-8 ml-2">
-                  <SelectedSvg fg={l.fg} bg={l.bg} width={32} height={32} />
+                {/* Превью SVG блока */}
+                <div className="w-8 h-8 ml-2 flex items-center justify-center">
+                  {d && <SvgPreview d={d} fg={l.fg} bg={l.bg} size={28} />}
                 </div>
 
                 {/* Цвет path (символ) */}
-                <div className="w-8 h-8 border relative border-gray-400 rounded-full overflow-hidden flex items-center justify-center z-20">
+                <div className="w-8 h-8 border relative border-gray-400 rounded-full overflow-hidden flex items-center justify-center">
                   <input
                     type="color"
-                    className="w-16 h-16 absolute"
+                    className="w-16 h-16 absolute cursor-pointer"
                     value={l.fg}
                     onChange={(e) => updateLayer(l.id, { fg: e.target.value })}
                   />
                 </div>
 
                 {/* Цвет rect (фон) */}
-                <div className="w-8 h-8 border relative border-gray-400 rounded-full overflow-hidden flex items-center justify-center z-10">
+                <div className="w-8 h-8 border relative border-gray-400 rounded-full overflow-hidden flex items-center justify-center">
                   <input
                     type="color"
-                    className="w-16 h-16 absolute"
+                    className="w-16 h-16 absolute cursor-pointer"
                     value={l.bg}
                     onChange={(e) => updateLayer(l.id, { bg: e.target.value })}
                   />
                 </div>
               </div>
 
-              {/* Настройки таргета и spread */}
+              {/* Настройки цели и spread */}
               <div className="flex items-center gap-2">
                 <label className="block text-sm pr-2 w-16">Target</label>
-                <div className="w-8 h-8 border relative border-gray-400 rounded-full overflow-hidden flex items-center justify-center z-20">
+                <div className="w-8 h-8 border relative border-gray-400 rounded-full overflow-hidden flex items-center justify-center">
                   <input
                     type="color"
-                    className="w-16 h-16 absolute"
+                    className="w-16 h-16 absolute cursor-pointer"
                     value={l.target}
                     onChange={(e) => updateLayer(l.id, { target: e.target.value })}
                   />
                 </div>
+
                 <div className="flex items-center gap-2">
                   <input
                     type="range"
@@ -98,9 +102,9 @@ export function LayersPanel({ layers, updateLayer, gifUrl }: Props) {
         })}
       </div>
 
-      {/* Оригинальный GIF */}
+      {/* Панель оригинального GIF */}
       {gifUrl && (
-        <div className="p-4 flex flex-col items-center">
+        <div className="p-4 flex flex-col items-center border-t border-gray-200">
           <div className="w-full flex items-center gap-2 mb-2">
             <div className="font-bold text-sm">Original GIF</div>
             <button

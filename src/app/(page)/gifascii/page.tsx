@@ -6,6 +6,7 @@ import { GifPreview } from '../../components/AsciiGif/GifPreview';
 import { GifControls } from '../../components/AsciiGif/GifControls';
 import { LayersPanel } from '../../components/AsciiGif/LayersPanel';
 import { Plus } from 'lucide-react';
+import { initialLayers } from '../../components/AsciiGif/lib/ascii';
 
 export default function Page() {
   const [frames, setFrames] = useState<FrameObject[] | null>(null);
@@ -14,53 +15,11 @@ export default function Page() {
   const [blockSize, setBlockSize] = useState(8);
   const [speed, setSpeed] = useState(5);
   const [canvasBg, setCanvasBg] = useState('#ffffff');
-  const [layers, setLayers] = useState<Layer[]>(() => [
-    {
-      id: -1,
-      symbol: '',
-      fg: '#000000',
-      bg: '#ffffff',
-      target: '#000000',
-      spread: 100,
-      visible: true,
-    },
-    {
-      id: 0,
-      symbol: '@',
-      fg: '#000000',
-      bg: '#ffffff',
-      target: '#000000',
-      spread: 100,
-      visible: true,
-    },
-    {
-      id: 1,
-      symbol: '#',
-      fg: '#ffffff',
-      bg: '#000000',
-      target: '#ff0000',
-      spread: 100,
-      visible: true,
-    },
-    {
-      id: 2,
-      symbol: '*',
-      fg: '#000000',
-      bg: '#ffffff',
-      target: '#00ff00',
-      spread: 100,
-      visible: true,
-    },
-    {
-      id: 3,
-      symbol: '%',
-      fg: '#0000ff',
-      bg: '#ffffff',
-      target: '#0000ff',
-      spread: 100,
-      visible: false,
-    },
-  ]);
+
+  // ----------------- Инициализация слоёв с SVG -----------------
+
+  const [layers, setLayers] = useState<Layer[]>(() => initialLayers);
+
   const [gifUrl, setGifUrl] = useState<string | null>(null);
   const [gifFiles, setGifFiles] = useState<string[]>([]);
 

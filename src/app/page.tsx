@@ -6,6 +6,7 @@ const pages = [
   { title: 'ascii', path: '/ascii' },
   { title: 'gif-ascii', path: '/gifascii' },
   { title: 'service', path: '/service' },
+  { title: 'product', path: '/product' },
 ];
 
 export default function HomePage() {

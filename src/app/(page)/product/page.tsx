@@ -1,15 +1,67 @@
 'use client';
 
 import { productsData } from '../../data/products';
-import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { ProductCard } from '../../components/ProductCard';
+import { motion } from 'framer-motion';
+
+const SPACING = 80;
 
 export default function ProductPage() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { scrollY } = useScroll();
+
+  const [fixedCards, setFixedCards] = useState<boolean[]>(
+    Array(productsData.length).fill(false)
+  );
+
+  // Исходные стили через absolute
+  const initialStyles = productsData.map((_, index) => {
+    const offset = index * SPACING;
+    const zIndex = productsData.length + index;
+    return { position: 'absolute', top: `${offset}px`, zIndex };
+  });
+
+  useEffect(() => {
+    const triggerOffset = 500; // старт триггеров
+
+    const handleScroll = () => {
+      if (!containerRef.current) return;
+
+      // Абсолютное смещение контейнера относительно начала страницы
+      const scroll = window.scrollY;
+      const containerTop = containerRef.current.offsetTop;
+
+      const startScroll = containerTop - triggerOffset; // момент, когда начинаем фиксацию
+
+      setFixedCards((prev) => {
+        const newFixed = [...prev];
+
+        if (scroll < startScroll) {
+          // ещё не дошли до trigger500 — всё в абсолют
+          return newFixed.map(() => false);
+        }
+
+        // сколько пикселей проскроллено от trigger500
+        const delta = scroll - startScroll;
+
+        console.log(delta)
+
+        productsData.forEach((_, index) => {
+          // фиксируем карточку, если delta >= index * SPACING
+          newFixed[index] = delta >= index * SPACING + 460;
+          
+        });
+
+        return newFixed;
+      });
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
-    <main className="p-10 min-h-screen mt-[800px]">
+    <main className="p-10 min-h-screen mt-[300px]">
       <section className="max-w-[900px] mx-auto">
         <div className="flex flex-col gap-5 p-6 mb-20">
           <h2 className="headline-xl-text text-center">драйв простых решений</h2>
@@ -18,59 +70,23 @@ export default function ProductPage() {
           </h3>
         </div>
 
-        {/* Стопка карточек */}
-        <div ref={containerRef} className="relative w-full h-[1000px] mt-[200px]">
+        <div
+          ref={containerRef}
+          className="relative w-full"
+          style={{ height: `${productsData.length * SPACING + 600}px` }}
+        >
           {productsData.map((product, index) => {
-            // теперь первая в массиве (верхняя в UI) двигается первой
-            const offset = index * 80;
-            const zIndex = productsData.length + index;
-
-            // диапазон движения: первая двигается с 0 до 400, вторая — 400–800 и т.д.
-            const start = index * 400;
-            const end = start + 400;
-
-            const rawY = useTransform(scrollY, [start, start + 400], [0, -400]);
-            const y = useSpring(rawY, { stiffness: 2000, damping: 0 });
+            const style = fixedCards[index]
+              ? { position: 'fixed', top: 40, width: '800px' }
+              : { ...initialStyles[index] };
 
             return (
               <motion.div
-                key={product.title}
-                style={{
-                  top: `${offset}px`,
-                  zIndex,
-                  y,
-                }}
-                className="absolute left-1/2 -translate-x-1/2 w-[1024px] h-[480px] rounded-sm border border-gray-200 bg-white transition-all duration-300 p-8"
+                key={index}
+                className="w-[800px] h-[480px]"
+                style={style}
               >
-                <p className="body-mono-lg font-semibold block mb-5">
-                  <span className="bg-white px-2 box-decoration-clone">{product.title}</span>
-                </p>
-
-                <p className="body-xl mb-4">
-                  <span className="bg-white px-2 box-decoration-clone">{product.description}</span>
-                </p>
-
-                <div className="flex flex-col grow justify-end">
-                  <ul className="flex flex-col gap-1">
-                    {product.features.map((feature, i) => (
-                      <li key={i} className="flex items-start">
-                        <div className="w-[12px] h-[18px] mt-[3px] bg-white flex justify-center items-center">
-                          <span className="w-1 h-1 ms-1 bg-black"></span>
-                        </div>
-
-                        <p className="body-md">
-                          <span className="bg-white px-2 box-decoration-clone">{feature}</span>
-                        </p>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <img
-                  src={product.gif}
-                  alt={product.title}
-                  className="absolute right-0 top-5 w-[300px] h-[300px] object-contain pointer-events-none"
-                />
+                <ProductCard product={product} />
               </motion.div>
             );
           })}

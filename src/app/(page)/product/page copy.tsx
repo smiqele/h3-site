@@ -6,22 +6,11 @@ import { ProductCard } from '../../components/ProductCard';
 import { motion } from 'framer-motion';
 
 const SPACING = 80;
-const STEP = 400; // базовый шаг для "фазы" карточки
-const FIX_TOP = 420; // для остальных фиксированных карточек кроме первой
-const FIRST_FIXED_SCROLL = 440;
-const OTHERS_FIXED_SCROLL = 80;
-const PHASE_SCROLL = 360;
-const MAX_INDEX = 8;
-const triggerOffset = 500;
 
 export default function ProductPage() {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const [fix, setFix] = useState(0);
-  const [delta, setDelta] = useState(0);
-
   const [fixedCards, setFixedCards] = useState<boolean[]>(Array(productsData.length).fill(false));
-  const [fixIndexes, setFixIndexes] = useState<(number | 'end')[]>(productsData.map((_, i) => i));
 
   // Исходные стили через absolute
   const initialStyles = productsData.map((_, index) => {
@@ -31,46 +20,40 @@ export default function ProductPage() {
   });
 
   useEffect(() => {
+    const triggerOffset = 500; // старт триггеров
+
     const handleScroll = () => {
       if (!containerRef.current) return;
 
+      // Абсолютное смещение контейнера относительно начала страницы
       const scroll = window.scrollY;
       const containerTop = containerRef.current.offsetTop;
-      const startScroll = containerTop - triggerOffset;
-      const delta = scroll - startScroll;
 
-      if (scroll < startScroll) {
-        setFixIndexes(productsData.map((_, i) => i));
-        setFixedCards(Array(productsData.length).fill(false));
-        return;
-      }
+      const startScroll = containerTop - triggerOffset; // момент, когда начинаем фиксацию
 
-      const newFix = Math.min(Math.floor(delta / STEP), MAX_INDEX);
-      setFix(newFix);
+      setFixedCards((prev) => {
+        const newFixed = [...prev];
 
-      const newFixIndexes: (number | 'end')[] = [];
-      const newFixedCards: boolean[] = [];
-
-      productsData.forEach((_, index) => {
-        let fix: number | 'end' = fixIndexes[index]; // текущее значение
-
-        // Логика стадий
-        if (fix === 0) {
-          if (delta >= FIRST_FIXED_SCROLL) fix = 'end';
-          newFixedCards[index] = delta >= FIRST_FIXED_SCROLL;
-        } else if (fix === 1) {
-          if (delta >= PHASE_SCROLL) fix = 0;
-          newFixedCards[index] = delta >= OTHERS_FIXED_SCROLL;
-        } else if (typeof fix === 'number' && fix >= 2) {
-          if (delta >= PHASE_SCROLL) fix = fix - 1;
-          newFixedCards[index] = delta >= OTHERS_FIXED_SCROLL;
+        if (scroll < startScroll) {
+          // ещё не дошли до trigger500 — всё в абсолют
+          return newFixed.map(() => false);
         }
 
-        newFixIndexes.push(fix);
-      });
+        // сколько пикселей проскроллено от trigger500
+        const delta = scroll - startScroll;
 
-      setFixIndexes(newFixIndexes);
-      setFixedCards(newFixedCards);
+        productsData.forEach((_, index) => {
+          if (index === 0) {
+            // первая фиксируется при delta >= 460
+            newFixed[index] = delta >= index * SPACING + 460;
+          } else {
+            // остальные фиксируются при delta >= 100
+            newFixed[index] = delta >= 100;
+          }
+        });
+
+        return newFixed;
+      });
     };
 
     window.addEventListener('scroll', handleScroll);
@@ -79,9 +62,6 @@ export default function ProductPage() {
 
   return (
     <main className="p-10 min-h-screen mt-[300px]">
-      <span className="fixed right-5 top-5">
-        {fix} / {delta} / {scrollY}
-      </span>
       <section className="max-w-[1000px] mx-auto">
         <div className="flex flex-col gap-5 p-6 mb-20">
           <h2 className="headline-xl-text text-center">драйв простых решений</h2>
@@ -93,14 +73,13 @@ export default function ProductPage() {
         <div
           ref={containerRef}
           className="relative w-full"
-          style={{ height: `${productsData.length * 400}px` }}
+          style={{ height: `${productsData.length * SPACING + 600}px` }}
         >
           {productsData.map((product, index) => {
-            const fix = fixIndexes[index];
             const style = fixedCards[index]
               ? {
                   position: 'fixed',
-                  top: index === 0 || fix === 'end' ? 40 : FIX_TOP + index * SPACING,
+                  top: index === 0 ? 40 : 400 + index * SPACING,
                   zIndex: productsData.length + index,
                 }
               : { ...initialStyles[index] };
@@ -108,9 +87,6 @@ export default function ProductPage() {
             return (
               <motion.div key={index} className="w-[1000px] h-[480px]" style={style}>
                 <ProductCard product={product} />
-                <div className="absolute left-5 top-5 text-xs text-gray-500">
-                  index: {index} — fix: {String(fix)}
-                </div>
               </motion.div>
             );
           })}
